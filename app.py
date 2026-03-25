@@ -6,16 +6,16 @@ import json
 import warnings
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer, util
-from dotenv import load_dotenv # PUDHUSA ADD PANNADHU
+from dotenv import load_dotenv
 
 # --- Setup ---
 warnings.filterwarnings('ignore')
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
-# .env file-la irukka passwords-ah Python-kulla load panrom
+# Load environment variables (.env)
 load_dotenv() 
 
-# Ippo AI key automatic-ah ulla vandhudum
+# Initialize AI and SBERT models
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 ranking_model = SentenceTransformer('all-MiniLM-L6-v2')
 
@@ -66,10 +66,71 @@ def display_candidate(row):
                 c4.download_button(label="📥 Download Resume", data=f, file_name=row['filename'], key=f"dl_{row['id']}")
         st.divider()
 
-# --- MAIN UI ---
-st.set_page_config(page_title="Perfect Match AI", layout="wide")
-st.title("🎯N2S Perfect Match AI Screener")
+# --- MAIN UI CONFIGURATION ---
+st.set_page_config(page_title="N2S Perfect Resume Matcher", layout="wide", page_icon="🎯")
 
+# --- INJECT CUSTOM CSS THEME (THE ULTIMATE FIX) ---
+st.markdown("""
+<style>
+    /* Primary Colors & Background */
+    .stApp {
+        background-color: #F9FAFB;
+        color: #1F2937;
+    }
+    
+    /* Input Boxes Background */
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>div>input {
+        background-color: #FFFFFF;
+        color: #1F2937;
+    }
+    
+    /* Button Styling (The Blue Premium Look) */
+    .stButton>button {
+        background-color: #4F46E5 !important;
+        color: white !important;
+        border-radius: 8px;
+        border: none;
+        padding: 10px 24px;
+        font-weight: bold;
+    }
+    
+    /* Button Hover Effect */
+    .stButton>button:hover {
+        background-color: #4338CA !important;
+        color: white !important;
+        border-color: #4338CA !important;
+    }
+    
+    /* Headers & Titles */
+    h1, h2, h3, h4, h5, h6 {
+        color: #1F2937;
+    }
+    
+    /* AI Score Metric Color */
+    [data-testid="stMetricValue"] {
+        color: #4F46E5;
+        font-weight: 800;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- CUSTOM HEADER WITH LOGO ---
+header_col1, header_col2 = st.columns([1, 4]) 
+
+with header_col1:
+    # Namma logo.png file irundha kaattum, illana placeholder kaattum
+    if os.path.exists("logo.png"):
+        st.image("logo.png", width=180)
+    else:
+        st.write("🏢 **[Company Logo]**") 
+
+with header_col2:
+    st.title("N2S Perfect Matching Resume Screening")
+    st.markdown("##### *Smart Filtering & Semantic Ranking Engine*")
+
+st.divider()
+
+# --- SEARCH DASHBOARD ---
 col1, col2, col3 = st.columns([2, 1, 1])
 with col1:
     jd_input = st.text_area("📋 Job Description / Key Skills:", height=100)
@@ -107,8 +168,8 @@ if st.button("🚀 Find Perfect Matches"):
                     scores = util.cos_sim(jd_embedding, resume_embeddings)[0]
                     raw_scores = scores.tolist()
                     
+                    # ATS Score Booster
                     adjusted_scores = [min(99.2, 75 + (s * 40)) for s in raw_scores]
-                    
                     df['AI_Score'] = [round(s, 1) for s in adjusted_scores]
                     
                     final_results = df.sort_values(by='AI_Score', ascending=False).drop_duplicates(subset=['name']).head(5)
